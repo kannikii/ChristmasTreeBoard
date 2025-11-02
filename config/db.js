@@ -6,12 +6,12 @@ const connection = mysql.createConnection({
     database: 'christmas_db'
 });
 
-connection.connect((err)=>{
-    if(err) {
+connection.connect((err) => {
+    if (err) {
         console.error(' MySQL 연결 실패: ', err);
         return;
     }
     console.log('MySQL 연결 성공!');
 });
 
-module.exports=connection;
+module.exports = connection;
