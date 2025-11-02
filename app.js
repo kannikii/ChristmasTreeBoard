@@ -107,6 +107,52 @@ app.post('/trees', (req, res) => {
     });
 });
 
+//트리 참여
+app.post('/trees/:treeID/join', (req, res) => {
+    const { treeID } = req.params;
+    const { user_id, tree_key } = req.body;
+
+    if (!user_id) {
+        return res.status(400).send('user_id는 필수 입니다.');
+    }
+
+    //트리 정보 확인
+    const checkTreeSql = 'select tree_type, tree_key from tree where tree_id = ?';
+    db.query(checkTreeSql, [treeID], (err, result) => {
+        if (err) {
+            console.error('트리 조회 실패 ', err);
+            return res.status(500).send('db조회실패');
+        }
+        if (result.length === 0) {
+            return res.status(404).send('존재하지 않는 트리입니다. ');
+        }
+        const tree = result[0];
+
+        //PRIVATE 트리인 경우 키 확인
+        if (tree.tree_type === 'PRIVATE') {
+            if (!tree_key || tree_key !== tree.tree_key) {
+                console.log('요청 키:', tree_key);
+                console.log('DB 키:', tree.tree_key);
+                return res.status(403).send('트리 키가 올바르지 않습니다.');
+            }
+        }
+
+        //참여 정보 삽입 (중복 방지)
+        const insertSql = 'insert ignore into member_tree (user_id, tree_id) values (?,?)';
+        db.query(insertSql, [user_id, treeID], (err2, result2) => {
+            if (err2) {
+                console.error('참여 실패', err2);
+                return res.status(500).send('참여 실패');
+            }
+
+            if (result2.affectedRows === 0) {
+                return res.status(200).send('이미트리에 참여중입니다.');
+            }
+            res.status(201).send(' 트리 참가 성공 ! ');
+        });
+    });
+});
+
 //start server
 app.listen(port, () => {
     console.log(`localhost:${port} run.`);
