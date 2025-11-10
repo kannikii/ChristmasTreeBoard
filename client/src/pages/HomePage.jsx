@@ -64,13 +64,13 @@ export default function HomePage({ user }) {
       )}
 
       {mode === "PRIVATE" && (
-        <div style={{ marginTop: "20px" }}>
+        <div className="private-key-wrapper">
           <input
             type="text"
-            placeholder="트리 키를 입력하세요"
+            placeholder="공유받은 키를 입력해주세요"
             value={privateKey}
             onChange={(e) => setPrivateKey(e.target.value)}
-            style={{ padding: "8px", fontFamily: "Press Start 2P" }}
+            className="private-key-input"
           />
           <PixelButton text="참가하기" onClick={handleJoin} />
         </div>
