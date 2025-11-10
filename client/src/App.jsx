@@ -12,10 +12,20 @@ import MyTreesPage from "./pages/MyTreesPage"; // ✅ 수정됨
 import TreePage from "./pages/TreePage";
 
 function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    const storedUser = localStorage.getItem("user");
+    if (!storedUser) return null;
+    try {
+      return JSON.parse(storedUser);
+    } catch {
+      localStorage.removeItem("user");
+      return null;
+    }
+  });
 
   const handleLogout = () => {
     setUser(null);
+    localStorage.removeItem("user");
     alert("로그아웃 되었습니다.");
   };
 

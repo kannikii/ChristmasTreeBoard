@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import Countdown from '../components/Countdown'
 import treePageBg from '../assets/treePage-bg.gif'
 import treeImage from '../assets/tree.png'
@@ -12,12 +12,52 @@ function TreePage({ user }) {
   const [newNote, setNewNote] = useState('')
   const [clickPos, setClickPos] = useState({ x: 0, y: 0 })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [hasAccess, setHasAccess] = useState(false)
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true)
   const treeRef = useRef(null)
   const { id } = useParams()
   const treeId = id
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (!treeId) return
+    if (!user) {
+      setHasAccess(false)
+      setIsCheckingAccess(false)
+      alert('로그인이 필요합니다!')
+      navigate('/login')
+      return
+    }
+
+    setIsCheckingAccess(true)
+
+    fetch(`http://localhost:3000/users/${user.id}/trees`)
+      .then((res) => {
+        if (!res.ok) throw new Error('트리 권한 확인 실패')
+        return res.json()
+      })
+      .then((list) => {
+        const allowed = Array.isArray(list)
+          ? list.some((tree) => String(tree.tree_id) === String(treeId))
+          : false
+
+        if (!allowed) {
+          alert('참여 중인 트리만 조회할 수 있습니다.')
+          navigate('/', { replace: true })
+        }
+        setHasAccess(allowed)
+      })
+      .catch((err) => {
+        console.error(err)
+        alert('트리 접근 권한을 확인할 수 없습니다.')
+        setHasAccess(false)
+        navigate('/', { replace: true })
+      })
+      .finally(() => setIsCheckingAccess(false))
+  }, [user, treeId, navigate])
+
+  useEffect(() => {
+    if (!treeId || !hasAccess) return
 
     fetch(`http://localhost:3000/trees/${treeId}/notes`)
       .then((res) => {
@@ -28,7 +68,7 @@ function TreePage({ user }) {
         if (Array.isArray(data)) setNotes(data)
       })
       .catch((err) => console.error(err))
-  }, [treeId])
+  }, [treeId, hasAccess])
 
   const handleTreeClick = (e) => {
     if (!user) {
@@ -88,6 +128,24 @@ function TreePage({ user }) {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (isCheckingAccess) {
+    return (
+      <div
+        className="tree-page-bg"
+        style={{
+          backgroundImage: `url(${treePageBg})`,
+        }}
+      >
+        <Countdown />
+        <p className="tree-instruction">트리 접근 권한을 확인 중입니다...</p>
+      </div>
+    )
+  }
+
+  if (!hasAccess) {
+    return null
   }
 
   return (
