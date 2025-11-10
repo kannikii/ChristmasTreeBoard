@@ -1,0 +1,16 @@
+.pixel-button {
+  background-color: #c0392b;
+  border: 3px solid #fff;
+  color: #fff;
+  font-size: 10px;
+  font-family: 'Press Start 2P', cursive;
+  padding: 8px 14px;
+  cursor: pointer;
+  box-shadow: 4px 4px 0px #222;
+  transition: all 0.1s ease-in-out;
+}
+
+.pixel-button:hover {
+  box-shadow: 2px 2px 0px #000;
+  transform: translate(2px, 2px);
+}

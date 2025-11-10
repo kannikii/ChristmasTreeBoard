@@ -79,6 +79,22 @@ app.post('/login', (req, res) => {
   });
 });
 
+// 유저 삭제
+app.delete("/users/:id", (req, res) => {
+  const { id } = req.params
+  const sql = "DELETE FROM user WHERE user_id = ?"
+  db.query(sql, [id], (err, result) => {
+    if (err) {
+      console.error("유저 삭제 실패:", err)
+      return res.status(500).send("DB 오류")
+    }
+    if (result.affectedRows === 0)
+      return res.status(404).send("존재하지 않는 사용자입니다.")
+    res.status(200).send("계정 삭제 성공")
+  })
+})
+
+
 // ------------------------ 트리 생성 ------------------------
 app.post('/trees', (req, res) => {
   const { owner_id, tree_name, tree_type } = req.body;
@@ -110,6 +126,43 @@ app.post('/trees', (req, res) => {
     });
   });
 });
+// ------------------------ 트리 조회 ------------------------
+app.get('/users/:userID/trees', (req, res) => {
+  const { userID } = req.params;
+
+  const sql = `
+    SELECT 
+      t.tree_id, 
+      t.tree_name, 
+      t.tree_type, 
+      t.tree_key,
+      t.created_at,
+      mt.joined_at
+    FROM member_tree AS mt
+    JOIN tree AS t ON mt.tree_id = t.tree_id
+    WHERE mt.user_id = ?
+    ORDER BY mt.joined_at DESC
+  `;
+
+  db.query(sql, [userID], (err, result) => {
+    if (err) {
+      console.error('❌ 내 트리 조회 실패:', err);
+      return res.status(500).send('내 트리 조회 실패');
+    }
+    res.status(200).json(result);
+  });
+});
+// 트리 키로 트리 조회
+app.get('/tree/by-key/:key', (req, res) => {
+  const { key } = req.params
+  const sql = 'SELECT * FROM tree WHERE tree_key = ?'
+  db.query(sql, [key], (err, result) => {
+    if (err) return res.status(500).send({ message: 'DB 오류' })
+    if (result.length === 0) return res.status(404).send({ message: '트리를 찾을 수 없습니다.' })
+    res.status(200).json(result[0])
+  })
+})
+
 
 // ------------------------ 트리 참여 ------------------------
 app.post('/trees/:treeID/join', (req, res) => {

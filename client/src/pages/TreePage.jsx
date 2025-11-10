@@ -1,152 +1,134 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react'
+import treeImage from '../assets/tree.png'
+import { useParams } from 'react-router-dom'
+import Countdown from '../components/Countdown'
 
-function TreePage() {
-  const [clickPos, setClickPos] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const treeRef = useRef(null);
-  const canvasRef = useRef(null);
-  const [imageLoaded, setImageLoaded] = useState(false);
+function TreePage({ user }) {
+    const [notes, setNotes] = useState([])
+    const [showModal, setShowModal] = useState(false)
+    const [newNote, setNewNote] = useState('')
+    const [clickPos, setClickPos] = useState({ x: 0, y: 0 })
+    const treeRef = useRef(null)
+    const { treeID } = useParams()
+    const handleTreeClick = (e) => {
+        if (!user) {
+            alert('로그인이 필요합니다!')
+            window.location.href = '/login'
+            return
+        }
 
-  useEffect(() => {
-    const img = new Image();
-    img.src = '/tree.png';
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      setImageLoaded(true);
-    };
-  }, []);
+        const rect = treeRef.current.getBoundingClientRect()
+        const x = e.clientX - rect.left
+        const y = e.clientY - rect.top
 
-  const handleTreeClick = (e) => {
-    if (!imageLoaded) return;
-    if (e.target.tagName !== 'IMG') return;
+        // ✅ 삼각형(트리) 내부 클릭만 허용
+        const treeCenterX = rect.width / 2
+        const height = rect.height
+        const baseWidth = rect.width
+        const leftEdge = treeCenterX - (baseWidth / height) * y
+        const rightEdge = treeCenterX + (baseWidth / height) * y
 
-    const imgElement = treeRef.current;
-    const rect = imgElement.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+        if (x < leftEdge || x > rightEdge) return
 
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    const pixel = ctx.getImageData(
-      Math.floor((x / rect.width) * canvas.width),
-      Math.floor((y / rect.height) * canvas.height),
-      1,
-      1
-    ).data;
+        setClickPos({ x, y })
+        setShowModal(true)
+    }
 
-    if (pixel[3] === 0) return; // 투명 영역 클릭 무시
+    const handleSubmit = () => {
+        if (!newNote.trim()) return
+        const newItem = {
+            message: newNote,
+            x: clickPos.x,
+            y: clickPos.y,
+        }
+        setNotes([...notes, newItem])
+        setShowModal(false)
+        setNewNote('')
+    }
 
-    setClickPos({ x, y });
-    setShowModal(true);
-  };
+    return (
+        <>
+            {/* ✅ 카운트다운을 페이지 최상단에 추가 */}
+            <Countdown />
 
-  const closeModal = () => setShowModal(false);
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        backgroundColor: '#f6fbff',
-        width: '100vw',
-        height: '100vh',
-      }}
-    >
-      <h1 style={{ color: '#333', fontWeight: '700' }}>🎄 Christmas Tree SNS</h1>
-      <p style={{ color: '#555' }}>
-        트리 내부를 클릭해 메모를 작성해보세요.
-      </p>
-
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '80vh',
-          position: 'relative',
-        }}
-      >
-        <img
-          ref={treeRef}
-          src="/tree.png"
-          alt="Christmas Tree"
-          onClick={handleTreeClick}
-          style={{
-            width: 'auto',
-            height: '90%',
-            cursor: 'pointer',
-            userSelect: 'none',
-          }}
-        />
-
-        <canvas ref={canvasRef} style={{ display: 'none' }} />
-
-        {showModal && clickPos && (
-          <div
-            style={{
-              position: 'absolute',
-              top: clickPos.y,
-              left: clickPos.x,
-              transform: 'translate(-50%, -100%)',
-              backgroundColor: '#fff',
-              border: '1px solid #ccc',
-              borderRadius: '12px',
-              padding: '12px',
-              boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
-              width: '220px',
-            }}
-          >
-            <h4 style={{ margin: '0 0 8px' }}>메모 작성</h4>
-            <textarea
-              placeholder="메시지를 입력하세요..."
-              style={{
-                width: '100%',
-                height: '80px',
-                resize: 'none',
-                borderRadius: '6px',
-                padding: '6px',
-                border: '1px solid #ccc',
-              }}
-            />
-            <div style={{ marginTop: '10px', textAlign: 'right' }}>
-              <button
-                onClick={closeModal}
+            {/* ✅ 기존 트리 렌더링 코드 */}
+            <div
                 style={{
-                  backgroundColor: '#999',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '5px 10px',
-                  cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    height: '100%',
+                    backgroundColor: '#ffffff',
                 }}
-              >
-                취소
-              </button>
-              <button
-                style={{
-                  backgroundColor: '#2a9d8f',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '5px 10px',
-                  marginLeft: '6px',
-                  cursor: 'pointer',
-                }}
-              >
-                저장
-              </button>
+            >
+                <div
+                    ref={treeRef}
+                    onClick={handleTreeClick}
+                    style={{
+                        position: 'relative',
+                        backgroundImage: `url(${treeImage})`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'center',
+                        backgroundSize: 'contain',
+                        width: '550px',
+                        height: '700px',
+                    }}
+                >
+                    {notes.map((note, index) => (
+                        <div
+                            key={index}
+                            style={{
+                                position: 'absolute',
+                                top: note.y - 10,
+                                left: note.x - 10,
+                                backgroundColor: 'yellow',
+                                borderRadius: '50%',
+                                width: '20px',
+                                height: '20px',
+                            }}
+                        ></div>
+                    ))}
+                </div>
+
+                {showModal && (
+                    <div
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            backgroundColor: 'rgba(0,0,0,0.5)',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                        }}
+                    >
+                        <div
+                            style={{
+                                backgroundColor: 'white',
+                                padding: '20px',
+                                borderRadius: '8px',
+                                width: '300px',
+                            }}
+                        >
+                            <h3>메모 작성</h3>
+                            <textarea
+                                value={newNote}
+                                onChange={(e) => setNewNote(e.target.value)}
+                                rows="4"
+                                style={{ width: '100%' }}
+                            />
+                            <div style={{ marginTop: '10px' }}>
+                                <button onClick={handleSubmit}>작성</button>
+                                <button onClick={() => setShowModal(false)}>취소</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+        </>
+    )
 }
 
-export default TreePage;
+export default TreePage
