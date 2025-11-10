@@ -12,6 +12,10 @@ function TreePage({ user }) {
   const [newNote, setNewNote] = useState('')
   const [clickPos, setClickPos] = useState({ x: 0, y: 0 })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [activeNote, setActiveNote] = useState(null)
+  const [noteLikes, setNoteLikes] = useState({})
+  const [noteComments, setNoteComments] = useState({})
+  const [newComment, setNewComment] = useState('')
   const [hasAccess, setHasAccess] = useState(false)
   const [isCheckingAccess, setIsCheckingAccess] = useState(true)
   const treeRef = useRef(null)
@@ -179,7 +183,11 @@ function TreePage({ user }) {
                 left: (note.pos_x ?? note.x) - 24,
                 width: '64px',
                 height: '64px',
-                pointerEvents: 'none',
+              }}
+              onClick={(e) => {
+                e.stopPropagation()
+                setActiveNote(note)
+                setNewComment('')
               }}
             />
           ))}
@@ -209,6 +217,77 @@ function TreePage({ user }) {
               >
                 취소
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeNote && (
+        <div className="note-detail-overlay">
+          <div className="note-detail-panel">
+            <button className="note-detail-close" onClick={() => setActiveNote(null)}>
+              ✖
+            </button>
+            <div className="note-detail-header">
+              <h3>장식 메모</h3>
+              <span className="note-detail-author">{activeNote.author || '익명'}</span>
+            </div>
+            <p className="note-detail-message">{activeNote.message}</p>
+
+            <div className="note-detail-actions">
+              <button
+                className="pixel-button"
+                onClick={() =>
+                  setNoteLikes((prev) => {
+                    const current = prev[activeNote.note_id] || 0
+                    return { ...prev, [activeNote.note_id]: current + 1 }
+                  })
+                }
+              >
+                ❤️ 좋아요 ({noteLikes[activeNote.note_id] || 0})
+              </button>
+            </div>
+
+            <div className="note-comment-section">
+              <h4>댓글</h4>
+              <div className="note-comment-list">
+                {(noteComments[activeNote.note_id] || []).length === 0 && (
+                  <p className="note-comment-empty">첫 댓글을 남겨보세요!</p>
+                )}
+                {(noteComments[activeNote.note_id] || []).map((comment, idx) => (
+                  <div key={idx} className="note-comment-item">
+                    <span className="note-comment-author">{comment.author}</span>
+                    <p>{comment.content}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="note-comment-form">
+                <input
+                  type="text"
+                  placeholder="댓글을 입력하세요"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                />
+                <button
+                  className="pixel-button"
+                  type="button"
+                  onClick={() => {
+                    if (!newComment.trim()) return
+                    const entry = {
+                      author: user?.username || '익명',
+                      content: newComment.trim(),
+                    }
+                    setNoteComments((prev) => {
+                      const prevList = prev[activeNote.note_id] || []
+                      return { ...prev, [activeNote.note_id]: [...prevList, entry] }
+                    })
+                    setNewComment('')
+                  }}
+                >
+                  댓글 등록
+                </button>
+              </div>
+              <p className="note-comment-info">※ 현재 화면은 미리보기이며, 데이터베이스 연결 후 저장됩니다.</p>
             </div>
           </div>
         </div>
