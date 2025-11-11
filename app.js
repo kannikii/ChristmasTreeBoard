@@ -2,18 +2,140 @@ require('dotenv').config();
 const cors = require('cors');
 const express = require('express');
 const bcrypt = require('bcrypt');
+const session = require('express-session');
+const MySQLStore = require('express-mysql-session')(session);
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const db = require('./config/db');
 
 const app = express();
 const port = process.env.PORT || 3000;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+const sessionStore = new MySQLStore({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT || 3306,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+});
 
 // JSON 요청 바디 파싱
 app.use(express.json());
 
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: FRONTEND_URL,
   credentials: true, // 세션, 쿠키 포함 요청 허용 (나중에 로그인 상태 유지 위해 필요)
 }));
+
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'christmas_secret_key',
+  resave: false,
+  saveUninitialized: false,
+  store: sessionStore,
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: false,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
+  },
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+const selectUserById = (id, callback) => {
+  const sql = 'SELECT user_id, username, email FROM user WHERE user_id = ?';
+  db.query(sql, [id], (err, results) => {
+    if (err) return callback(err);
+    if (results.length === 0) return callback(null, null);
+    callback(null, results[0]);
+  });
+};
+
+passport.serializeUser((user, done) => {
+  done(null, user.user_id);
+});
+
+passport.deserializeUser((id, done) => {
+  selectUserById(id, (err, user) => {
+    if (err) return done(err);
+    done(null, user);
+  });
+});
+
+passport.use(new GoogleStrategy({
+  clientID: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  callbackURL: process.env.GOOGLE_CALLBACK_URL,
+}, (accessToken, refreshToken, profile, done) => {
+  const email = profile.emails && profile.emails[0] && profile.emails[0].value;
+  if (!email) {
+    return done(new Error('Google 계정에서 이메일을 가져올 수 없습니다.'));
+  }
+
+  const selectSql = 'SELECT * FROM user WHERE email = ?';
+  db.query(selectSql, [email], (err, results) => {
+    if (err) return done(err);
+    if (results.length > 0) {
+      return done(null, results[0]);
+    }
+
+    const insertSql = `
+      INSERT INTO user (username, email, password, provider)
+      VALUES (?, ?, ?, 'google')
+    `;
+    const username = profile.displayName || 'Google 사용자';
+    db.query(insertSql, [username, email, 'GOOGLE_LOGIN'], (insertErr, insertResult) => {
+      if (insertErr) return done(insertErr);
+      const newUser = {
+        user_id: insertResult.insertId,
+        username,
+        email,
+      };
+      done(null, newUser);
+    });
+  });
+}));
+
+const buildUserPayload = (user) => ({
+  id: user.user_id,
+  username: user.username,
+  email: user.email,
+});
+
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+app.get(
+  '/auth/google/callback',
+  passport.authenticate('google', {
+    failureRedirect: `${FRONTEND_URL}/login?error=google`,
+    session: true,
+  }),
+  (req, res) => {
+    const payload = Buffer.from(JSON.stringify(buildUserPayload(req.user))).toString('base64url');
+    res.redirect(`${FRONTEND_URL}/oauth-success?user=${payload}`);
+  }
+);
+
+app.post('/auth/logout', (req, res) => {
+  const finalize = () => {
+    if (req.session) {
+      req.session.destroy(() => {
+        res.clearCookie('connect.sid');
+        res.status(200).send('로그아웃 완료');
+      });
+    } else {
+      res.status(200).send('로그아웃 완료');
+    }
+  };
+
+  if (typeof req.logout === 'function') {
+    req.logout(() => finalize());
+  } else {
+    finalize();
+  }
+});
 
 // ------------------------ 기본 라우트 ------------------------
 app.get('/', (req, res) => {

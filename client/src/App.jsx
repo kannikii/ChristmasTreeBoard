@@ -10,6 +10,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import MyTreesPage from "./pages/MyTreesPage"; // ✅ 수정됨
 import TreePage from "./pages/TreePage";
+import OAuthSuccess from "./pages/OAuthSuccess";
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -45,6 +46,7 @@ function App() {
         <Route path="/" element={<HomePage user={user} />} />
         <Route path="/login" element={<LoginPage setUser={setUser} />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/oauth-success" element={<OAuthSuccess setUser={setUser} />} />
         <Route path="/mytrees" element={<MyTreesPage user={user} />} />
         <Route path="/tree/:id" element={<TreePage user={user} />} />
         <Route path="*" element={<Navigate to="/" />} />

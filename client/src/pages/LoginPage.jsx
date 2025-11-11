@@ -1,18 +1,28 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import '../components/PixelForm.css'
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 
 function LoginPage({ setUser }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
   const navigate = useNavigate()
+  const location = useLocation()
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (params.get('error') === 'google') {
+      setMessage('❌ 구글 로그인에 실패했습니다. 다시 시도해주세요.')
+    }
+  }, [location.search])
 
   const handleLogin = async (e) => {
     e.preventDefault()
 
     try {
-      const response = await fetch('http://localhost:3000/login', {
+      const response = await fetch(`${API_BASE_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -32,6 +42,10 @@ function LoginPage({ setUser }) {
       setMessage('서버 오류 발생')
       console.error(error)
     }
+  }
+
+  const handleGoogleLogin = () => {
+    window.location.href = `${API_BASE_URL}/auth/google`
   }
 
   return (
@@ -57,6 +71,10 @@ function LoginPage({ setUser }) {
             로그인
           </button>
         </form>
+        <p className="oauth-divider">OR</p>
+        <button type="button" className="google-login-button" onClick={handleGoogleLogin}>
+          🔐 구글로 로그인
+        </button>
         {message && <p className="pixel-link">{message}</p>}
         <p className="pixel-link action" onClick={() => navigate('/register')}>
           아직 계정이 없다면? 회원가입

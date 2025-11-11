@@ -73,6 +73,54 @@
   transform: translate(2px, 2px);
 }
 
+.oauth-divider {
+  position: relative;
+  margin: 24px auto 12px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  width: 80%;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.oauth-divider::before,
+.oauth-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 30%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.oauth-divider::before {
+  left: 0;
+}
+
+.oauth-divider::after {
+  right: 0;
+}
+
+.google-login-button {
+  width: 90%;
+  margin: 0 auto;
+  display: block;
+  background: #0b7285;
+  border: 3px solid #fff;
+  color: #fff;
+  padding: 12px 20px;
+  font-family: 'Lanapixel', 'Press Start 2P', 'NeoDunggeunmo', cursive;
+  cursor: pointer;
+  box-shadow: 4px 4px 0px #000;
+  transition: all 0.1s ease-in-out;
+  border-radius: 16px;
+}
+
+.google-login-button:hover {
+  box-shadow: 2px 2px 0px #000;
+  transform: translate(2px, 2px);
+}
+
 .pixel-link {
   color: #ffcc00;
   text-decoration: none;
