@@ -10,9 +10,6 @@ const port = process.env.PORT || 3000;
 // JSON 요청 바디 파싱
 app.use(express.json());
 
-// (예전 정적 파일용) 나중에 React로 옮길 예정이라 지금은 있어도 되고, 나중에 정리 가능
-app.use(express.static('public'));
-
 app.use(cors({
   origin: 'http://localhost:5173',
   credentials: true, // 세션, 쿠키 포함 요청 허용 (나중에 로그인 상태 유지 위해 필요)
@@ -20,7 +17,7 @@ app.use(cors({
 
 // ------------------------ 기본 라우트 ------------------------
 app.get('/', (req, res) => {
-  res.send('� Christmas Tree API Server is ON!');
+  res.send('Christmas Tree API Server is ON!');
 });
 
 // ------------------------ 회원가입 ------------------------
@@ -94,7 +91,6 @@ app.delete("/users/:id", (req, res) => {
   })
 })
 
-
 // ------------------------ 트리 생성 ------------------------
 app.post('/trees', (req, res) => {
   const { owner_id, tree_name, tree_type } = req.body;
@@ -126,6 +122,7 @@ app.post('/trees', (req, res) => {
     });
   });
 });
+
 // ------------------------ 트리 조회 ------------------------
 app.get('/users/:userID/trees', (req, res) => {
   const { userID } = req.params;
@@ -246,6 +243,57 @@ app.get('/trees/:treeID/notes', (req, res) => {
     res.status(200).json(result);
   });
 });
+
+// ------------------------ 댓글 작성 ------------------------
+app.post('/notes/:noteID/comments', (req, res) => {
+  const { noteID } = req.params;
+  const { user_id, content } = req.body;
+
+  if (!user_id || !content) {
+    return res.status(401).send('userId와 content는 필수 입니다.');
+  }
+  const sql = `
+    insert into comment (note_id,user_id,content)
+    values (?,?,?);
+  `;
+  db.query(sql, [noteID, user_id, content], (err, result) => {
+    if (err) {
+      console.error('댓글 등록 실패:', err);
+      return res.status(500).send('댓글 작성 실패');
+    }
+    res.status(201).json({
+      message: '댓글 등록 성공',
+      comment_id: result.insertId,
+    });
+  });
+});
+
+// ------------------------ 댓글 조회 ------------------------
+app.get('/notes/:noteID/comments', (req, res) => {
+  const { noteID } = req.params;
+  const sql = `
+    SELECT 
+      c.comment_id,
+      c.content,
+      c.created_at,
+      u.user_id,
+      u.username AS author
+    FROM comment c
+    JOIN user u ON c.user_id = u.user_id
+    WHERE c.note_id = ?
+    ORDER BY c.created_at ASC
+  `;
+  db.query(sql, [noteID], (err, result) => {
+    if (err) {
+      console.error('댓글 조회 실패:', err);
+      return res.status(500).send('댓글 조회 실패');
+    }
+    res.status(200).json(result);
+  });
+});
+
+// ------------------------ 댓글 삭제 ------------------------
+
 
 // ------------------------ 서버 시작 ------------------------
 app.listen(port, () => {
