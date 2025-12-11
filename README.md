@@ -85,3 +85,4 @@ christmasTreeNoteDB.sql   # MySQL 스키마 덤프
 
 <img width="639" height="849" alt="image" src="https://github.com/user-attachments/assets/0cc060ed-cc4c-4950-8b46-a19611f18e97" />
 
+<img width="1134" height="474" alt="스크린샷 2025-12-11 오후 7 11 15" src="https://github.com/user-attachments/assets/b469b180-52ea-4b21-8a5a-d9817e8461dc" />
